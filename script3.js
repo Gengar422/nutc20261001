@@ -1,166 +1,133 @@
 const form = document.querySelector("#payment-form");
+const cardInput = document.querySelector("#card-number");
+const expiryInput = document.querySelector("#expiry");
+const cvvInput = document.querySelector("#cvv");
+const amountInput = document.querySelector("#amount");
 const result = document.querySelector("#result");
 
-form.addEventListener("submit", function (event) {
-  event.preventDefault();
-  result.textContent = "submit 事件已觸發";
+function showFieldError(input, text) {
+  if (!input) return;
+  const field = input.closest(".field");
+  if (!field) return;
 
-  if (isEmpty(cardInput.value)) {
-
-  showFieldError(
-    cardInput,
-    "請輸入測試卡號"
-  );
-  console.log("空的")
-  return false;
-
+  field.classList.add("invalid");
+  const errorEl = field.querySelector(".error");
+  if (errorEl) {
+    errorEl.textContent = text;
+  }
 }
 
-});
-
-const rawCardNumber = cardInput.value;
-
-const trimmed = rawCardNumber.trim();
-
-const digits = trimmed.replace(/\s/g, "");
-
-console.log(rawCardNumber);
-console.log(trimmed);
-console.log(digits);
+function clearErrors() {
+  document.querySelectorAll(".field").forEach(function (field) {
+    field.classList.remove("invalid");
+    const errorEl = field.querySelector(".error");
+    if (errorEl) {
+      errorEl.textContent = "";
+    }
+  });
+}
 
 function isEmpty(value) {
-
   return value.trim() === "";
-
-}
-function showFieldError(input, text) {
-
-  const field = input.closest(".field");
-  const error = field.querySelector(".error");
-
-  field.classList.add("invalid");
-  error.textContent = text;
-
 }
 
-function clearErrors() {
-  document.querySelectorAll(".field")
-    .forEach(function (field) {
-      field.classList.remove("invalid");
-      field.querySelector(".error")
-        .textContent = "";
-    });
-}
-function containsDigitsOnly(value) {
+// Luhn 演算法檢查（return 必須放在 for 迴圈外面）
+function passesLuhn(cardNumber) {
+  const digits = cardNumber.replace(/\s+/g, "");
+  let sum = 0;
+  let shouldDouble = false;
 
-  return /^\d+$/.test(value);
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = Number(digits[i]);
 
-}
+    if (shouldDouble) {
+      digit = digit * 2;
+      if (digit > 9) {
+        digit = digit - 9;
+      }
+    }
 
-
-const digits = cardInput.value.replace(
-  /\s/g,
-  ""
-);
-
-
-if (!containsDigitsOnly(digits)) {
-  showFieldError(
-    cardInput,
-    "卡號只能包含數字與空白"
-  );
-}
-
-
-function hasLength(value, length) {
-
-  return value.length === length;
-
-}
-
-if (!hasLength(digits, 16)) {
-  showFieldError(
-    cardInput,
-    "測試卡號必須是 16 位數"
-  );
-}
-
-if (!/^\d{3}$/.test(cvvInput.value)) {
-  showFieldError(
-    cvvInput,
-    "安全碼必須是 3 位數字"
-  );
-}
-
-
-const amount = Number(amountInput.value);
-
-if (!Number.isFinite(amount)) {
-  showFieldError(
-    amountInput,
-    "請輸入有效金額"
-  );
-
-} else if (amount < 1 || amount > 50000) {
-  showFieldError(
-    amountInput,
-    "金額必須介於 1 到 50000"
-  );
-}
-
-
-function isValidExpiry(value) {
-
-  const match = value.match(
-    /^(0[1-9]|1[0-2])\/(\d{2})$/
-  );
-
-  if (!match) return false;
-
-  const month = Number(match[1]);
-  const year = Number(match[2]);
-
-  return month >= 1 &&
-         month <= 12 &&
-         year >= 26;
-
-}
-
-
-function showFieldError(input, text) {
-
-  const field = input.closest(".field");
-  const error = field.querySelector(".error");
-
-  field.classList.add("invalid");
-  error.textContent = text;
-
-}
-
-function clearErrors() {
-  document.querySelectorAll(".field")
-    .forEach(function (field) {
-      field.classList.remove("invalid");
-      field.querySelector(".error")
-        .textContent = "";
-    });
-}
-
-
-form.addEventListener("submit", function (event) {
-
-  event.preventDefault();
-
-  clearErrors();
-
-  const cardOK = validateCardNumber();
-  const expiryOK = validateExpiry();
-  const cvvOK = validateCvv();
-  const amountOK = validateAmount();
-
-  if (cardOK && expiryOK && cvvOK && amountOK) {
-    result.textContent =
-      "欄位檢查完成，測試交易通過";
+    sum += digit;
+    shouldDouble = !shouldDouble;
   }
 
+  return sum % 10 === 0;
+}
+
+// 專門檢查測試卡號：空白 -> 請勿空白 / 非16位數字 -> 卡號長度不對 / Luhn不通過 -> 請輸入正確的卡號
+function validateCardNumber() {
+  const rawValue = cardInput.value;
+  const digits = rawValue.replace(/\s+/g, "");
+
+  if (isEmpty(rawValue)) {
+    showFieldError(cardInput, "請勿空白");
+    return false;
+  }
+
+  if (!/^\d{16}$/.test(digits)) {
+    showFieldError(cardInput, "卡號長度不對");
+    return false;
+  }
+
+  if (!passesLuhn(digits)) {
+    showFieldError(cardInput, "請輸入正確的卡號");
+    return false;
+  }
+
+  return true;
+}
+
+function validateFields() {
+  let isValid = true;
+
+  // 1. 測試卡號
+  if (!validateCardNumber()) {
+    isValid = false;
+  }
+
+  // 2. 有效期限
+  const expiryValue = expiryInput.value.trim();
+  if (isEmpty(expiryValue)) {
+    showFieldError(expiryInput, "請勿空白");
+    isValid = false;
+  } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiryValue)) {
+    showFieldError(expiryInput, "請使用 MM/YY，月份需為 01 到 12");
+    isValid = false;
+  }
+
+  // 3. 安全碼
+  const cvvValue = cvvInput.value.trim();
+  if (isEmpty(cvvValue)) {
+    showFieldError(cvvInput, "請勿空白");
+    isValid = false;
+  } else if (!/^\d{3}$/.test(cvvValue)) {
+    showFieldError(cvvInput, "請輸入 3 位數字");
+    isValid = false;
+  }
+
+  // 4. 付款金額
+  const amountRaw = amountInput.value.trim();
+  const amount = Number(amountRaw);
+  if (isEmpty(amountRaw)) {
+    showFieldError(amountInput, "請勿空白");
+    isValid = false;
+  } else if (!Number.isFinite(amount) || amount < 1 || amount > 50000) {
+    showFieldError(amountInput, "金額必須介於 1 到 50000");
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+form.addEventListener("submit", function (event) {
+  event.preventDefault();
+  clearErrors();
+
+  if (validateFields()) {
+    result.textContent = "所有欄位格式通過";
+    result.className = "result";
+  } else {
+    result.textContent = "請修正欄位錯誤";
+    result.className = "result failed";
+  }
 });
