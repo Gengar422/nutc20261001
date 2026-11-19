@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>終極密碼遊戲</title>
+  <link rel="stylesheet" href="style2.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+
+  <div class="app">
+    <p class="eyebrow">終極密碼</p>
+    <h1>猜出隱藏數字</h1>
+    
+    <div class="range" id="range">1 ～ 100</div>
+    <div class="stats" id="attempts">已猜 0 次，請輸入範圍內的整數。</div>
+
+    <div class="button-row">
+      <input type="number" id="guess" placeholder="請輸入數字">
+      <button id="guess-button">送出答案</button>
+      <button id="reset-button" class="secondary">重新開始</button>
+    </div>
+
+    <div id="message" class="message">請輸入第一個數字</div>
+  </div>
+
+  <script src="game.js" defer></script>
+</body>
+</html>
